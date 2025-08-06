@@ -26,7 +26,7 @@ const Usuarios = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
-  contraseña:{
+  password:{
     type: String,
     required: true,
   },

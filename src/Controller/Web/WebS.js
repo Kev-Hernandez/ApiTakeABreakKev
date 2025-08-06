@@ -1,3 +1,4 @@
+/*
 const WebSocket = require('ws');
 const mongoose = require('mongoose');
 const ChatWeb = require('../../Data/model/ChatWeb');
@@ -63,4 +64,4 @@ wss.on('connection', (ws) => {
   ws.on('close', () => {
     console.log('Cliente desconectado');
   });
-});
+});*/

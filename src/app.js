@@ -1,51 +1,98 @@
 const express = require('express');
-const http = require('http');           // Para crear servidor HTTP
-const WebSocket = require('ws');        // WebSocket
-const connectDB = require('./Data/Conexion/DB');
-require('dotenv').config();
-const Sync = require('./Data/sync');
+const http = require('http');
+const WebSocket = require('ws');
 const cors = require('cors');
+const dotenv = require('dotenv');
+const connectDB = require('./Data/Conexion/DB');
+const Sync = require('./Data/sync');
 
-const ChatWeb = require('./Data/model/ChatWeb'); // Ajusta ruta si es necesario
-const Usuario = require('./Data/model/Usuarios'); // Ajusta ruta si es necesario
+const ChatWeb = require('./Data/model/ChatWeb');
+const Usuario = require('./Data/model/Usuarios');
+
+dotenv.config();
 
 const app = express();
 
-// Conectar a la base de datos
 connectDB();
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 
-// Sincronización
 (async () => {
   await Sync();
 })();
 
-// Rutas
 const authRoutes = require('./Routes/Web/authRoutes');
 app.use('/api/web/auth', authRoutes);
 
-const webRoutes = require('./Routes/Web'); // index.js
+const webRoutes = require('./Routes/Web');
 app.use('/api/web', webRoutes);
 
 app.get('/', (req, res) => {
   res.send('API funcionando');
 });
 
-// Crear servidor HTTP para Express
-const server = http.createServer(app);
+app.get('/api/web/chat/history/:userId/:recipientId', async (req, res) => {
+  try {
+    const { userId, recipientId } = req.params;
 
-// Crear servidor WebSocket sobre el mismo HTTP server
+    const chat = await ChatWeb.findOne({
+      participantes: { $all: [userId, recipientId] }
+    });
+
+    if (!chat) {
+      return res.status(200).json({ mensajes: [] });
+    }
+
+    res.json({ mensajes: chat.mensajes });
+  } catch (err) {
+    console.error('Error al obtener historial:', err);
+    res.status(500).json({ error: 'Error al obtener historial' });
+  }
+});
+
+//ruta borrar historial
+app.delete('/api/web/chat/history/:userId/:recipientId', async (req, res) => {
+  const { userId, recipientId } = req.params;
+
+  try {
+    const chat = await ChatWeb.findOne({
+      participantes: { $all: [userId, recipientId] }
+    });
+
+    if (!chat) {
+      return res.status(404).json({ message: 'Chat no encontrado' });
+    }
+
+    chat.mensajes = [];
+    await chat.save();
+
+    res.status(200).json({ message: 'Historial eliminado' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al eliminar historial' });
+  }
+});
+
+
+
+const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
 wss.on('connection', (ws) => {
-  console.log('Cliente conectado');
+  console.log('Cliente WebSocket conectado');
 
   ws.on('message', async (message) => {
     try {
       const data = JSON.parse(message);
+
+      // Caso especial: mensaje inicial para registrar userId en esta conexión
+      if (data.type === 'init') {
+        ws.userId = data.userId;
+        console.log(`Conexión inicializada para userId: ${ws.userId}`);
+        return; // No seguimos procesando este mensaje
+      }
+
       const { userId, recipientId, text } = data;
 
       let chat = await ChatWeb.findOne({
@@ -72,32 +119,33 @@ wss.on('connection', (ws) => {
 
       const response = {
         remitenteId: userId,
+        recipientId,
         remitenteNombre: remitente?.nombre || 'Desconocido',
-        text: text,
+        text,
         timestamp: new Date().toLocaleTimeString(),
         date: new Date().toLocaleDateString()
       };
 
+      // Enviar sólo a usuarios involucrados (emisor y receptor)
       wss.clients.forEach((client) => {
-        if (client.readyState === WebSocket.OPEN) {
+        if (
+          client.readyState === WebSocket.OPEN &&
+          (client.userId === userId || client.userId === recipientId)
+        ) {
           client.send(JSON.stringify(response));
         }
       });
-
     } catch (err) {
-      console.error('Error al procesar el mensaje:', err);
+      console.error('Error al procesar el mensaje WebSocket:', err);
     }
   });
 
   ws.on('close', () => {
-    console.log('Cliente desconectado');
+    console.log('Cliente WebSocket desconectado');
   });
 });
 
-// Usar el puerto asignado por Render
 const PORT = process.env.PORT || 3001;
-
-// Levantar el servidor HTTP (Express + WS)
 server.listen(PORT, () => {
   console.log(`🚀 Servidor Express y WebSocket corriendo en puerto ${PORT}`);
 });

@@ -7,14 +7,14 @@ const register = async (req, res) => {
       nombre,
       apellido,
       email,
-      contraseña,
+      password,
       sexo,
       preferences = { generos: [], autores: [] },
       plataforma = []
     } = req.body;
 
     // Validación básica
-    if (!nombre || !apellido || !email || !contraseña || !sexo) {
+    if (!nombre || !apellido || !email || !password || !sexo) {
       return res.status(400).json({ mensaje: 'Todos los campos son obligatorios' });
     }
 
@@ -24,15 +24,15 @@ const register = async (req, res) => {
       return res.status(400).json({ mensaje: 'El correo ya está registrado' });
     }
 
-    // Encriptar la contraseña
-    const hashedcontraseña = await bcrypt.hash(contraseña, 10);
+    // Encriptar la password
+    const hashedpassword = await bcrypt.hash(password, 10);
 
     // Crear nuevo usuario
     const nuevoUsuario = new Usuarios({
       nombre,
       apellido,
       email,
-      contraseña: hashedcontraseña,
+      password: hashedpassword,
       sexo,
       preferences,
       plataforma
@@ -50,7 +50,7 @@ const register = async (req, res) => {
 
 const login = async (req, res) => {
   try {
-    const { email, contraseña } = req.body;
+    const { email, password } = req.body;
 
     // Buscar usuario
     const usuario = await Usuarios.findOne({ email });
@@ -58,23 +58,23 @@ const login = async (req, res) => {
       return res.status(404).json({ mensaje: 'Usuario no encontrado' });
     }
 
-    if (!contraseña) {
-      return res.status(400).json({ mensaje: 'Falta la contraseña' });
+    if (!password) {
+      return res.status(400).json({ mensaje: 'Falta la password' });
     }
 
-    if (!usuario.contraseña || usuario.contraseña.length < 20) {
-      return res.status(500).json({ mensaje: 'La contraseña almacenada no es válida' });
+    if (!usuario.password || usuario.password.length < 20) {
+      return res.status(500).json({ mensaje: 'La password almacenada no es válida' });
     }
 
 
-    console.log('contraseña ingresado:', contraseña);
-    console.log('contraseña hasheado en BD:', usuario.contraseña);
+    console.log('password ingresado:', password);
+    console.log('password hasheado en BD:', usuario.password);
 
 
-    // Comparar contraseñas
-    const contraseñaOk = await bcrypt.compare(contraseña, usuario.contraseña);
-    if (!contraseñaOk) {
-      return res.status(401).json({ mensaje: 'contraseña incorrecta' });
+    // Comparar passwords
+    const passwordOk = await bcrypt.compare(password, usuario.password);
+    if (!passwordOk) {
+      return res.status(401).json({ mensaje: 'password incorrecta' });
     }
 
     // Éxito
@@ -101,7 +101,7 @@ const login = async (req, res) => {
 const getProfile = async (req, res) => {
   try {
     const userId = req.params.userId;
-    const usuario = await Usuarios.findById(userId).select('-contraseña');
+    const usuario = await Usuarios.findById(userId).select('-password');
     
     if (!usuario) {
       return res.status(404).json({ mensaje: 'Usuario no encontrado' });
@@ -117,7 +117,7 @@ const getProfile = async (req, res) => {
 const updateProfile = async (req, res) => {
   try {
     const userId = req.params.userId;
-    const { nombre, email, contraseña, descripcion } = req.body;
+    const { nombre, email, password, descripcion } = req.body;
 
     const usuario = await Usuarios.findById(userId);
     if (!usuario) {
@@ -129,15 +129,15 @@ const updateProfile = async (req, res) => {
     if (email) usuario.email = email;
     if (descripcion) usuario.descripcion = descripcion;
 
-    // Si se proporciona nueva contraseña, hashearla
-    if (contraseña) {
-      usuario.contraseña = await bcrypt.hash(contraseña, 10);
+    // Si se proporciona nueva password, hashearla
+    if (password) {
+      usuario.password = await bcrypt.hash(password, 10);
     }
 
     await usuario.save();
 
-    // Devolver usuario sin contraseña
-    const usuarioActualizado = await Usuarios.findById(userId).select('-contraseña');
+    // Devolver usuario sin password
+    const usuarioActualizado = await Usuarios.findById(userId).select('-password');
     res.json({ mensaje: 'Perfil actualizado con éxito', usuario: usuarioActualizado });
 
   } catch (error) {
