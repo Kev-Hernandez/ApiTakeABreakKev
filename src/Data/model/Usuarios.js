@@ -1,49 +1,16 @@
-// user.js
 const mongoose = require('mongoose');
 
-const Usuarios = new mongoose.Schema({
-  nombre: {
-    type: String,
-    required: true,
-    trim: true,
-  },
-  apellido: {
-    type: String,
-    required: true,
-    trim: true,
-  },
-  email: {
-    type: String,
-    required: true,
-    unique: true,
-    lowercase: true,
-  },
-  edad: {
-    type: Number,
-    min: 0,
-  },
-  fechaCreacion: {
-    type: Date,
-    default: Date.now,
-  },
-  password:{
-    type: String,
-    required: true,
-  },
-  sexo: {
-    type: String,
-    enum: ['masculino', 'femenino', 'otro'],
-    required: true,
-  },
-   preferences: {
-    generos: [String],
-    autores: [String],
-  },
-  plataforma: [String],
+const UsuarioSchema = new mongoose.Schema({
+  nombre: { type: String, required: true, trim: true },
+  apellido: { type: String, required: true, trim: true },
+  email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+  password: { type: String, required: true },
+  avatar: { type: String, default: '', trim: true },
+  genero: { type: String, default: '' },
+  descripcion: { type: String, default: '', trim: true },
+  // ...otros campos que ya tenías
+}, {
+  timestamps: true
+});
 
-},{autoCreate: true} );
-
-
-const Usermodel = mongoose.model('Usuarios', Usuarios);
-
-module.exports = Usermodel;
+module.exports = mongoose.model('Usuarios', UsuarioSchema);
