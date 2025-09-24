@@ -12,8 +12,11 @@ const connectDB = require('./Data/Conexion/DB');
 const Sync = require('./Data/sync');
 const webRoutes = require('./Routes/Web'); // Carga index.js de la carpeta Web
 const authRoutes = require('./Routes/Web/authRoutes');
+const RegisterRoutes = require('./Routes/Web/Routes_Register'); //ruta para  registrar a los usuarios
+const loginRoutes = require('./Routes/Web/Routes_Login'); //ruta para  loguear a los usuarios
 const ChatWeb = require('./Data/model/ChatWeb');
 const Usuario = require('./Data/model/Usuarios');
+const authMiddlewareRoutes = require('./Middleware/authMiddleware');  // Middleware de autenticación para funiones dle chat
 // =======================================================================
 
 dotenv.config();
@@ -34,7 +37,8 @@ const startServer = async () => {
     app.use(express.static(path.join(__dirname, '..', 'public')));
 
     // --- Registra TODAS tus rutas de la API ---
-    app.use('/api/web/auth', authRoutes); // Para /login, /register
+    app.use('/api', RegisterRoutes); // Para registrar a los usuarios
+    app.use('/api', loginRoutes); // Para loguear a los usuarios
     app.use('/api/web', webRoutes);       // Para todo lo demás (usuarios, chat, perfil)
 
     // --- Ruta para obtener la lista de avatares ---
