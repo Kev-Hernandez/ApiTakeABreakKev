@@ -1,5 +1,4 @@
-const Usuarios = require('../../Data/model/Usuarios');
-const bcrypt = require('bcrypt');
+const Users = require('../../../Data/model/Usuarios');
 
 
 const getProfile = async (req, res) => {
@@ -49,5 +48,4 @@ const updateProfile = async (req, res) => {
     res.status(500).json({ mensaje: 'Error al actualizar perfil' });
   }
 };
-
 module.exports = {getProfile, updateProfile };

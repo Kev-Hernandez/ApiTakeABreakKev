@@ -11,9 +11,9 @@ const fs = require('fs');
 const connectDB = require('./Data/Conexion/DB');
 const Sync = require('./Data/sync');
 const webRoutes = require('./Routes/Web'); // Carga index.js de la carpeta Web
-const authRoutes = require('./Routes/Web/authRoutes');
 const RegisterRoutes = require('./Routes/Web/Routes_Register'); //ruta para  registrar a los usuarios
 const loginRoutes = require('./Routes/Web/Routes_Login'); //ruta para  loguear a los usuarios
+const UpdateUserRoutes = require('./Routes/Web/Routes_User'); //ruta para actualizar el perfil del usuario
 const ChatWeb = require('./Data/model/ChatWeb');
 const Usuario = require('./Data/model/Usuarios');
 const authMiddlewareRoutes = require('./Middleware/authMiddleware');  // Middleware de autenticación para funiones dle chat
@@ -33,14 +33,18 @@ const startServer = async () => {
     app.use(cors());
     app.use(express.json());
     
-    // Para encontrar la carpeta 'public', subimos un nivel ('..') desde 'src'
-    app.use(express.static(path.join(__dirname, '..', 'public')));
-
+    
     // --- Registra TODAS tus rutas de la API ---
     app.use('/api', RegisterRoutes); // Para registrar a los usuarios
     app.use('/api', loginRoutes); // Para loguear a los usuarios
-    app.use('/api/web', webRoutes);       // Para todo lo demás (usuarios, chat, perfil)
 
+
+    app.use('/api/web', webRoutes, authMiddlewareRoutes);     // Para todo lo demás (usuarios, chat, perfil)
+
+    app.use('/api/user', authMiddlewareRoutes, UpdateUserRoutes); // Rutas protegidas para actualizar perfil de usuario
+    
+    // Para encontrar la carpeta 'public', subimos un nivel ('..') desde 'src'
+    app.use(express.static(path.join(__dirname, '..', 'public')));
     // --- Ruta para obtener la lista de avatares ---
     app.get('/api/web/avatars', (req, res) => {
       const avatarsDirectory = path.join(__dirname, '..', 'public', 'avatares');
