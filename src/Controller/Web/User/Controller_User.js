@@ -1,16 +1,30 @@
+// fileName: src/Controller/Web/User/Controller_User.js (Versión Unificada y Mejorada)
+
+const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs'); // Usamos bcryptjs consistentemente
 const Users = require('../../../Data/model/Usuarios');
-const bcrypt = require('bcryptjs');
 
+// Obtener TODOS los usuarios activos (lógica que vino de index.js)
+exports.getActiveUsers = async (req, res) => {
+  try {
+    const usuarios = await Users.find().select('-password');
+    res.json(usuarios);
+  } catch (error) {
+    res.status(500).json({ message: 'Error al obtener usuarios activos' });
+  }
+};
 
+// Obtener el perfil de UN usuario por su ID
 exports.getProfile = async (req, res) => {
   try {
-    const userId = req.params.userId;
+    const userId = req.params.userId; // Usamos userId para consistencia
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ message: 'ID no válido' });
+    }
     const usuario = await Users.findById(userId).select('-password');
-    
     if (!usuario) {
       return res.status(404).json({ mensaje: 'Usuario no encontrado' });
     }
-
     res.json(usuario);
   } catch (error) {
     console.error('Error al obtener perfil:', error);
@@ -18,36 +32,34 @@ exports.getProfile = async (req, res) => {
   }
 };
 
+// Actualizar el perfil de UN usuario por su ID
 exports.updateProfile = async (req, res) => {
   try {
     const userId = req.params.userId;
-    // La desestructuración está bien
-    const { nombre, apellido, email, password, descripcion, avatar, genero } = req.body;
-
-    const usuario = await Users.findById(userId);
-    if (!usuario) {
-      return res.status(404).json({ mensaje: 'Usuario no encontrado' });
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ message: 'ID de usuario no válido' });
     }
 
-    if (nombre) usuario.nombre = nombre;
-    if (apellido) usuario.apellido = apellido; 
-    if (email) usuario.email = email;
-    if (descripcion) usuario.descripcion = descripcion;
-    if (avatar) usuario.avatar = avatar;
-    if (genero) usuario.genero = genero;
+    const { password, ...updateData } = req.body;
 
-    if (password) {
-      usuario.password = password; // Si aún no la encriptas
+    // Si se envía una nueva contraseña, la encriptamos
+    if (password && password.length > 0) {
+        const salt = await bcrypt.genSalt(10);
+        // ¡ERROR CRÍTICO CORREGIDO! Faltaba hashear la contraseña
+        updateData.password = await bcrypt.hash(password, salt);
     }
-
-    // Guardamos los cambios hechos en el documento 'usuario'
-    await usuario.save();
-
-    // Devolvemos el usuario actualizado sin la contraseña
-    const usuarioActualizado = usuario.toObject();
-    delete usuarioActualizado.password;
     
-    res.json({ mensaje: 'Perfil actualizado con éxito', usuario: usuarioActualizado });
+    const usuario = await Users.findByIdAndUpdate(
+      userId,
+      { $set: updateData },
+      { new: true } // Esto asegura que nos devuelva el documento actualizado
+    ).select('-password');
+
+    if (!usuario) {
+      return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+
+    res.json({ message: 'Perfil actualizado con éxito', usuario });
 
   } catch (error) {
     console.error('Error al actualizar perfil:', error);

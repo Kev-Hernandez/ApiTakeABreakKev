@@ -1,88 +1,50 @@
+// fileName: app.js (versión final, limpia y corregida)
+
 const express = require('express');
 const http = require('http');
-const WebSocket = require('ws');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
 
-// ======================= CORRECCIÓN FINAL DE RUTAS =======================
-// Desde 'src/app.js', buscamos en el mismo nivel con './'
+// --- Dependencias del proyecto ---
 const connectDB = require('./Data/Conexion/DB');
 const Sync = require('./Data/sync');
-const webRoutes = require('./Routes/Web'); // Carga index.js de la carpeta Web
-const RegisterRoutes = require('./Routes/Web/Routes_Register'); //ruta para  registrar a los usuarios
-const loginRoutes = require('./Routes/Web/Routes_Login'); //ruta para  loguear a los usuarios
-const UpdateUserRoutes = require('./Routes/Web/Routes_User'); //ruta para actualizar el perfil del usuario
-const ChatWeb = require('./Data/model/ChatWeb');
-const Usuario = require('./Data/model/Usuarios');
-const authMiddlewareRoutes = require('./Middleware/authMiddleware');  // Middleware de autenticación para funiones dle chat
-const Avatars = require('./Routes/Web/Routes_Avatars'); //ruta para obtener los avatares
-// =======================================================================
+const mainApiRouter = require('./Routes/Web'); // 1. ÚNICA importación para todas las rutas de la API
+const initializeWebsockets = require('./Controller/Web/Chat/Service/Websockets'); // 2. Importamos nuestra nueva lógica de WebSockets
 
 dotenv.config();
 const app = express();
 
 const startServer = async () => {
   try {
+    // --- Conexión y Sincronización ---
     await connectDB();
     console.log('✅ Conexión a la base de datos exitosa.');
-
     await Sync();
     console.log('✅ Sincronización de modelos completada.');
 
+    // --- Middlewares Generales ---
     app.use(cors());
     app.use(express.json());
-    
-    // --- Registra TODAS tus rutas de la API ---
-    app.use('/api/avatares', express.static(path.join(__dirname, '..', 'public', 'avatares')), authMiddlewareRoutes);
-    app.use('/api/web',Avatars, authMiddlewareRoutes);
-    app.use('/api', RegisterRoutes); // Para registrar a los usuarios
-    app.use('/api', loginRoutes); // Para loguear a los usuarios
-    app.use('/api/web', webRoutes, authMiddlewareRoutes);     // Para todo lo demás (usuarios, chat, perfil)
-    app.use('/api/user', UpdateUserRoutes, authMiddlewareRoutes); // Rutas protegidas para actualizar perfil de usuario
 
+    // --- Servir archivos estáticos (imágenes de avatares) ---
+    app.use('/public', express.static(path.join(__dirname, '..', 'public')));
+
+    // --- REGISTRO DE RUTAS ---
+    // app.js solo conoce al "recepcionista" (mainApiRouter)
+    // Todas las rutas de tu API ahora comenzarán con /api/v1
+    app.use('/api/v1', mainApiRouter);
+    console.log('✅ Rutas de la API registradas en /api/v1');
+
+    // --- Creación del Servidor HTTP ---
     const server = http.createServer(app);
-    const wss = new WebSocket.Server({ server });
 
-    // --- LÓGICA DE WEBSOCKET ---
-    wss.on('connection', (ws) => {
-      console.log('Cliente WebSocket conectado');
+    // --- INICIALIZACIÓN DE WEBSOCKETS ---
+    // Llamamos a la función que importamos para que se encargue de la "música"
+    initializeWebsockets(server);
+    console.log('✅ Servicio de WebSocket inicializado.');
 
-      ws.on('message', async (message) => {
-        try {
-          const data = JSON.parse(message);
-          if (data.type === 'init') {
-            ws.userId = data.userId;
-            return;
-          }
-          const { userId, recipientId, text } = data;
-          const remitente = await Usuario.findById(userId).select('nombre avatar');
-          let chat = await ChatWeb.findOne({ participantes: { $all: [userId, recipientId] } });
-          if (!chat) {
-            chat = new ChatWeb({ participantes: [userId, recipientId], mensajes: [] });
-          }
-          chat.mensajes.push({ remitenteId: userId, texto: text, fecha: new Date() });
-          await chat.save();
-          const response = {
-            remitenteId: userId,
-            recipientId,
-            remitenteNombre: remitente.nombre,
-            remitenteAvatar: remitente.avatar,
-            text,
-            timestamp: new Date().toISOString(),
-          };
-          wss.clients.forEach((client) => {
-            if (client.readyState === WebSocket.OPEN && (client.userId === userId || client.userId === recipientId)) {
-              client.send(JSON.stringify(response));
-            }
-          });
-        } catch (err) {
-          console.error('Error en mensaje WebSocket:', err);
-        }
-      });
-      ws.on('close', () => console.log('Cliente WebSocket desconectado'));
-    });
-
+    // --- Iniciar el Servidor ---
     const PORT = process.env.PORT || 3001;
     server.listen(PORT, () => {
       console.log(`🚀 Servidor corriendo y escuchando en el puerto ${PORT}`);

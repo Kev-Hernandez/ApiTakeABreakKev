@@ -1,4 +1,4 @@
-const bycrypt = require('bcrypt');
+const bcrypt = require('bcrypt');
 const Usuarios = require('../../../Data/model/Usuarios');
 const jwt = require('jsonwebtoken');
 const SECRET_KEY = process.env.PALABRA_SECRETA || 'Ya Valio el proyecto';
@@ -15,7 +15,7 @@ exports.login = async (req, res) => {
             });
         }
 
-        const passwordValid = await bycrypt.compare(password, user.password);
+        const passwordValid = await bcrypt.compare(password, user.password);
         if (!passwordValid) {
             return res.status(401).json({
                 message: 'Contraseña incorrecta'
