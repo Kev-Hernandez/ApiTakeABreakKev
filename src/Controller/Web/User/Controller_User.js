@@ -21,27 +21,32 @@ exports.getProfile = async (req, res) => {
 exports.updateProfile = async (req, res) => {
   try {
     const userId = req.params.userId;
-    const { nombre, email, password, descripcion } = req.body;
+    // La desestructuración está bien
+    const { nombre, apellido, email, password, descripcion, avatar, genero } = req.body;
 
     const usuario = await Users.findById(userId);
     if (!usuario) {
       return res.status(404).json({ mensaje: 'Usuario no encontrado' });
     }
 
-    // Actualizar campos básicos
-    if (nombre) Users.nombre = nombre;
-    if (email) Users.email = email;
-    if (descripcion) Users.descripcion = descripcion;
+    if (nombre) usuario.nombre = nombre;
+    if (apellido) usuario.apellido = apellido; 
+    if (email) usuario.email = email;
+    if (descripcion) usuario.descripcion = descripcion;
+    if (avatar) usuario.avatar = avatar;
+    if (genero) usuario.genero = genero;
 
-    // Si se proporciona nueva password, hashearla
     if (password) {
-      Users.password = await bcrypt.hash(password, 10);
+      usuario.password = password; // Si aún no la encriptas
     }
 
+    // Guardamos los cambios hechos en el documento 'usuario'
     await usuario.save();
 
-    // Devolver usuario sin password
-    const usuarioActualizado = await Users.findById(userId).select('-password');
+    // Devolvemos el usuario actualizado sin la contraseña
+    const usuarioActualizado = usuario.toObject();
+    delete usuarioActualizado.password;
+    
     res.json({ mensaje: 'Perfil actualizado con éxito', usuario: usuarioActualizado });
 
   } catch (error) {
