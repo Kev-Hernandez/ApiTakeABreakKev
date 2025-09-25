@@ -4,7 +4,6 @@ const WebSocket = require('ws');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
-const fs = require('fs');
 
 // ======================= CORRECCIÓN FINAL DE RUTAS =======================
 // Desde 'src/app.js', buscamos en el mismo nivel con './'
@@ -17,6 +16,7 @@ const UpdateUserRoutes = require('./Routes/Web/Routes_User'); //ruta para actual
 const ChatWeb = require('./Data/model/ChatWeb');
 const Usuario = require('./Data/model/Usuarios');
 const authMiddlewareRoutes = require('./Middleware/authMiddleware');  // Middleware de autenticación para funiones dle chat
+const Avatars = require('./Routes/Web/Routes_Avatars'); //ruta para obtener los avatares
 // =======================================================================
 
 dotenv.config();
@@ -33,26 +33,13 @@ const startServer = async () => {
     app.use(cors());
     app.use(express.json());
     
-    
     // --- Registra TODAS tus rutas de la API ---
+    app.use('/api/avatares', express.static(path.join(__dirname, '..', 'public', 'avatares')), authMiddlewareRoutes);
+    app.use('/api/web',Avatars, authMiddlewareRoutes);
     app.use('/api', RegisterRoutes); // Para registrar a los usuarios
     app.use('/api', loginRoutes); // Para loguear a los usuarios
-
-
     app.use('/api/web', webRoutes, authMiddlewareRoutes);     // Para todo lo demás (usuarios, chat, perfil)
-
-    app.use('/api/user', authMiddlewareRoutes, UpdateUserRoutes); // Rutas protegidas para actualizar perfil de usuario
-    
-    // Para encontrar la carpeta 'public', subimos un nivel ('..') desde 'src'
-    app.use(express.static(path.join(__dirname, '..', 'public')));
-    // --- Ruta para obtener la lista de avatares ---
-    app.get('/api/web/avatars', (req, res) => {
-      const avatarsDirectory = path.join(__dirname, '..', 'public', 'avatares');
-      fs.readdir(avatarsDirectory, (err, files) => {
-        if (err) return res.status(500).json({ message: 'Error al leer avatares' });
-        res.json(files.filter(file => /\.(png|jpg|jpeg)$/i.test(file)));
-      });
-    });
+    app.use('/api/user', UpdateUserRoutes, authMiddlewareRoutes); // Rutas protegidas para actualizar perfil de usuario
 
     const server = http.createServer(app);
     const wss = new WebSocket.Server({ server });

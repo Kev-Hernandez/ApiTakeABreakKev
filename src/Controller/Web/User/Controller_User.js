@@ -1,10 +1,11 @@
 const Users = require('../../../Data/model/Usuarios');
+const bcrypt = require('bcryptjs');
 
 
-const getProfile = async (req, res) => {
+exports.getProfile = async (req, res) => {
   try {
     const userId = req.params.userId;
-    const usuario = await Usuarios.findById(userId).select('-password');
+    const usuario = await Users.findById(userId).select('-password');
     
     if (!usuario) {
       return res.status(404).json({ mensaje: 'Usuario no encontrado' });
@@ -17,30 +18,30 @@ const getProfile = async (req, res) => {
   }
 };
 
-const updateProfile = async (req, res) => {
+exports.updateProfile = async (req, res) => {
   try {
     const userId = req.params.userId;
     const { nombre, email, password, descripcion } = req.body;
 
-    const usuario = await Usuarios.findById(userId);
+    const usuario = await Users.findById(userId);
     if (!usuario) {
       return res.status(404).json({ mensaje: 'Usuario no encontrado' });
     }
 
     // Actualizar campos básicos
-    if (nombre) usuario.nombre = nombre;
-    if (email) usuario.email = email;
-    if (descripcion) usuario.descripcion = descripcion;
+    if (nombre) Users.nombre = nombre;
+    if (email) Users.email = email;
+    if (descripcion) Users.descripcion = descripcion;
 
     // Si se proporciona nueva password, hashearla
     if (password) {
-      usuario.password = await bcrypt.hash(password, 10);
+      Users.password = await bcrypt.hash(password, 10);
     }
 
     await usuario.save();
 
     // Devolver usuario sin password
-    const usuarioActualizado = await Usuarios.findById(userId).select('-password');
+    const usuarioActualizado = await Users.findById(userId).select('-password');
     res.json({ mensaje: 'Perfil actualizado con éxito', usuario: usuarioActualizado });
 
   } catch (error) {
@@ -48,4 +49,3 @@ const updateProfile = async (req, res) => {
     res.status(500).json({ mensaje: 'Error al actualizar perfil' });
   }
 };
-module.exports = {getProfile, updateProfile };
