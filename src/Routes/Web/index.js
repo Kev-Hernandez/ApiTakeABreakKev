@@ -3,14 +3,16 @@
 const express = require('express');
 const router = express.Router();
 
-// Importamos los únicos dos archivos de rutas que necesitamos
+// Importamos los archivos de rutas que necesitamos
 const authRoutes = require('./auth.routes.js');
 const userRoutes = require('./user.routes.js');
 const chatRoutes = require('./chat.routes.js');
+const aiRoutes = require('./ai.routes.js');
 
 // La recepcionista le asigna una URL base a cada departamento
 router.use('/auth', authRoutes); // Para /login y /register
 router.use('/users', userRoutes); // Para todo lo de usuarios
 router.use('/chat', chatRoutes); // Para todo lo de chats
+router.use('/ai', aiRoutes);     // Para todo lo de IA
 
 module.exports = router;
