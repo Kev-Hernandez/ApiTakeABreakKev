@@ -6,13 +6,14 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
 
+dotenv.config();
+
 // --- Dependencias del proyecto ---
 const connectDB = require('./Data/Conexion/DB');
 const Sync = require('./Data/sync');
 const mainApiRouter = require('./Routes/Web'); // 1. ÚNICA importación para todas las rutas de la API
 const initializeWebsockets = require('./Controller/Web/Chat/Service/Websockets'); // 2. Importamos nuestra nueva lógica de WebSockets
 
-dotenv.config();
 const app = express();
 
 const startServer = async () => {

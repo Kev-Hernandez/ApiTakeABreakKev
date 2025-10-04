@@ -7,7 +7,13 @@ const Users = require('../../../Data/model/Usuarios');
 // Obtener TODOS los usuarios activos (lógica que vino de index.js)
 exports.getActiveUsers = async (req, res) => {
   try {
-    const usuarios = await Users.find().select('-password');
+    // ✅ INICIO DE LA MODIFICACIÓN
+    const currentUserId = req.user.id; // Obtenemos el ID del usuario que hace la petición
+
+    // Buscamos a todos los usuarios CUYO ID NO SEA el del usuario actual
+    const usuarios = await Users.find({ _id: { $ne: currentUserId } }).select('-password');
+    // ✅ FIN DE LA MODIFICACIÓN
+
     res.json(usuarios);
   } catch (error) {
     res.status(500).json({ message: 'Error al obtener usuarios activos' });

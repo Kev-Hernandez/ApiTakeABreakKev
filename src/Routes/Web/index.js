@@ -8,11 +8,15 @@ const authRoutes = require('./auth.routes.js');
 const userRoutes = require('./user.routes.js');
 const chatRoutes = require('./chat.routes.js');
 const aiRoutes = require('./ai.routes.js');
+const preferencesRoutes = require('./preferences.routes.js');
+const friendsRoutes = require('./friends.routes.js');
 
 // La recepcionista le asigna una URL base a cada departamento
 router.use('/auth', authRoutes); // Para /login y /register
 router.use('/users', userRoutes); // Para todo lo de usuarios
 router.use('/chat', chatRoutes); // Para todo lo de chats
 router.use('/ai', aiRoutes);     // Para todo lo de IA
+router.use('/preferences', preferencesRoutes); // Para todo lo de preferencias
+router.use('/friends', friendsRoutes); // Para todo lo de amigos
 
 module.exports = router;
