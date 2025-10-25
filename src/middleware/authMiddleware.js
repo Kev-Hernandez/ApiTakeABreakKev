@@ -16,7 +16,10 @@ const verifyToken = (req, res, next) => {
     const decoded = jwt.verify(token, SECRET_KEY);
     // Guardamos los datos del usuario (del token) en el objeto 'req'
     // para que las rutas protegidas puedan usarlos.
-    req.user = decoded;
+    req.user = {
+      id: decoded.id || decoded._id,
+      email: decoded.email
+    }
     // Si todo es correcto, le damos paso a la siguiente función (la ruta)
     next();
   } catch (error) {
