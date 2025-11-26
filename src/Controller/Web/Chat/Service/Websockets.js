@@ -16,7 +16,7 @@ function initializeWebsockets(server) {
         // Parseamos el mensaje recibido
         const data = JSON.parse(message);
         
-        // 1. Manejo de inicialización (Cuando el usuario se conecta y dice "Soy yo")
+        // Manejo de inicialización 
         if (data.type === 'init') {
           ws.userId = data.userId;
           console.log(` Usuario autenticado en WS: ${data.userId}`);
@@ -31,13 +31,7 @@ function initializeWebsockets(server) {
             return; 
         }
 
-        // ---------------------------------------------------------
-        // 🚀 OPTIMIZACIÓN DE VELOCIDAD: EJECUCIÓN EN PARALELO
-        // Landa 3 tareas al mismo tiempo para no perder ni un milisegundo
-        // ---------------------------------------------------------
-        
-        // TAREA 1: Preguntar a la IA (Python)
-        // Si falla, no pasa nada, usamos 'neutral' y seguimos.
+        // Preguntar a la IA (Python)
         const iaPromise = fetch(`${process.env.PYTHON_MICROSERVICE_URL}/api/web/analizar-mensaje`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -53,13 +47,13 @@ function initializeWebsockets(server) {
             return 'neutral'; // Fallback seguro
         });
 
-        // TAREA 2: Buscar datos del remitente (Para mostrar nombre y foto)
+        // Buscar datos del remitente 
         const remitentePromise = Usuario.findById(userId).select('nombre avatar');
 
-        // TAREA 3: Buscar la sala de chat existente
+        // Buscar la sala de chat existente
         const chatPromise = ChatWeb.findOne({ participantes: { $all: [userId, recipientId] } });
 
-        // ⏱️ AHORA SÍ: Esperamos a que los 3 terminen
+        // ⏱Esperamos a que los 3 terminen
         const [emocionDetectada, remitente, chatEncontrado] = await Promise.all([
             iaPromise,
             remitentePromise,
@@ -81,14 +75,14 @@ function initializeWebsockets(server) {
             remitenteId: userId, 
             texto: text, 
             fecha: new Date(),
-            emocion: emocionDetectada // <--- Aquí guardamos la magia de la IA
+            emocion: emocionDetectada //  Aquí guardamos la emocion
         };
 
         chat.mensajes.push(nuevoMensaje);
         await chat.save();
 
    
-        //  ENVIAR A LOS CLIENTES (Broadcast)
+        //  ENVIAR A LOS CLIENTES 
        
         const response = {
           remitenteId: userId,
@@ -96,7 +90,7 @@ function initializeWebsockets(server) {
           remitenteNombre: remitente ? remitente.nombre : 'Usuario',
           remitenteAvatar: remitente ? remitente.avatar : null,
           text,
-          emocion: emocionDetectada, // ¡El Frontend usa esto para pintar el color!
+          emocion: emocionDetectada, 
           timestamp: new Date().toISOString(),
         };
 
