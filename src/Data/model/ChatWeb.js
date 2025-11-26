@@ -13,15 +13,10 @@ const ChatWeb = new mongoose.Schema({
       fecha: { type: Date, default: Date.now }
     }
   ],
-  emocionesDetectadas: [
-    {
-      usuarioId: { 
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Usuarios' },
-      emocion: String,
-      confianza: Number
-    }
-  ],
+   emocion: {
+            type: String,
+            default: 'neutral'
+        },
   creado_en: { type: Date, default: Date.now }
 });
 

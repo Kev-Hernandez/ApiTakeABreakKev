@@ -1,52 +1,119 @@
-// fileName: src/Controller/Web/Chat/Service/Websockets.js
-
 const WebSocket = require('ws');
-const ChatWeb = require('../../../../Data/model/ChatWeb'); // Ajustamos la ruta para llegar a los modelos
-const Usuario = require('../../../../Data/model/Usuarios'); // Ajustamos la ruta para llegar a los modelos
+const ChatWeb = require('../../../../Data/model/ChatWeb');
+const Usuario = require('../../../../Data/model/Usuarios');
 
-// Creamos una función que se encargará de toda la lógica del WebSocket
+require('dotenv').config(); 
+
 function initializeWebsockets(server) {
+  // Creamos el servidor de WebSockets montado sobre el servidor HTTP existente
   const wss = new WebSocket.Server({ server });
 
   wss.on('connection', (ws) => {
-    console.log('Cliente WebSocket conectado');
+    console.log(' Cliente WebSocket conectado');
 
     ws.on('message', async (message) => {
       try {
+        // Parseamos el mensaje recibido
         const data = JSON.parse(message);
+        
+        // 1. Manejo de inicialización (Cuando el usuario se conecta y dice "Soy yo")
         if (data.type === 'init') {
           ws.userId = data.userId;
+          console.log(` Usuario autenticado en WS: ${data.userId}`);
           return;
         }
+
+        // 2. Extraemos los datos del mensaje real
         const { userId, recipientId, text } = data;
-        const remitente = await Usuario.findById(userId).select('nombre avatar');
-        let chat = await ChatWeb.findOne({ participantes: { $all: [userId, recipientId] } });
+
+        if (!text || !userId || !recipientId) {
+            console.warn('⚠️ Mensaje incompleto recibido');
+            return; 
+        }
+
+        // ---------------------------------------------------------
+        // 🚀 OPTIMIZACIÓN DE VELOCIDAD: EJECUCIÓN EN PARALELO
+        // Landa 3 tareas al mismo tiempo para no perder ni un milisegundo
+        // ---------------------------------------------------------
+        
+        // TAREA 1: Preguntar a la IA (Python)
+        // Si falla, no pasa nada, usamos 'neutral' y seguimos.
+        const iaPromise = fetch(`${process.env.PYTHON_MICROSERVICE_URL}/api/web/analizar-mensaje`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mensaje: text })
+        })
+        .then(res => {
+            if (res.ok) return res.json();
+            throw new Error(`Status ${res.status}`);
+        })
+        .then(data => data.emocion_detectada || 'neutral')
+        .catch(err => {
+            console.error(`[IA Error] No se pudo analizar emoción: ${err.message}`);
+            return 'neutral'; // Fallback seguro
+        });
+
+        // TAREA 2: Buscar datos del remitente (Para mostrar nombre y foto)
+        const remitentePromise = Usuario.findById(userId).select('nombre avatar');
+
+        // TAREA 3: Buscar la sala de chat existente
+        const chatPromise = ChatWeb.findOne({ participantes: { $all: [userId, recipientId] } });
+
+        // ⏱️ AHORA SÍ: Esperamos a que los 3 terminen
+        const [emocionDetectada, remitente, chatEncontrado] = await Promise.all([
+            iaPromise,
+            remitentePromise,
+            chatPromise
+        ]);
+
+        console.log(`🤖 IA detectó: ${emocionDetectada} | Mensaje: "${text}"`);
+
+    
+        // GUARDADO EN BASE DE DATOS 
+        
+        let chat = chatEncontrado;
         if (!chat) {
+          // Si no existe el chat, lo creamos
           chat = new ChatWeb({ participantes: [userId, recipientId], mensajes: [] });
         }
-        chat.mensajes.push({ remitenteId: userId, texto: text, fecha: new Date() });
+
+        const nuevoMensaje = { 
+            remitenteId: userId, 
+            texto: text, 
+            fecha: new Date(),
+            emocion: emocionDetectada // <--- Aquí guardamos la magia de la IA
+        };
+
+        chat.mensajes.push(nuevoMensaje);
         await chat.save();
+
+   
+        //  ENVIAR A LOS CLIENTES (Broadcast)
+       
         const response = {
           remitenteId: userId,
           recipientId,
-          remitenteNombre: remitente.nombre,
-          remitenteAvatar: remitente.avatar,
+          remitenteNombre: remitente ? remitente.nombre : 'Usuario',
+          remitenteAvatar: remitente ? remitente.avatar : null,
           text,
+          emocion: emocionDetectada, // ¡El Frontend usa esto para pintar el color!
           timestamp: new Date().toISOString(),
         };
+
+        // Enviamos el mensaje a ambos participantes si están conectados
         wss.clients.forEach((client) => {
           if (client.readyState === WebSocket.OPEN && (client.userId === userId || client.userId === recipientId)) {
             client.send(JSON.stringify(response));
           }
         });
+
       } catch (err) {
-        console.error('Error en mensaje WebSocket:', err);
+        console.error('❌ Error procesando mensaje WebSocket:', err);
       }
     });
 
-    ws.on('close', () => console.log('Cliente WebSocket desconectado'));
+    ws.on('close', () => console.log('📴 Cliente WebSocket desconectado'));
   });
 }
 
-// Exportamos la función para poder usarla en app.js
 module.exports = initializeWebsockets;
