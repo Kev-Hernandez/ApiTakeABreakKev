@@ -12,7 +12,7 @@ dotenv.config();
 const connectDB = require('./Data/Conexion/DB');
 const Sync = require('./Data/sync');
 const mainApiRouter = require('./routes/web'); // 1. ÚNICA importación para todas las rutas de la API
-const initializeWebsockets = require('./controller/web/chat/service/websockets'); // 2. Importamos nuestra nueva lógica de WebSockets
+const initializeWebsockets = require('./controller/Web/chat/service/websockets'); // 2. Importamos nuestra nueva lógica de WebSockets
 
 const app = express();
 
