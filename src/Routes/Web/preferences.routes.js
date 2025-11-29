@@ -3,7 +3,7 @@
 const express = require('express');
 const router = express.Router();
 // 1. Importamos ambas funciones del controlador
-const { getOnboardingOptions, saveUserPreferences, searchApiArtists } = require('../../Controller/Web/Preferences/preferences.controller.js');
+const { getOnboardingOptions, saveUserPreferences, searchApiArtists } = require('../../Controller/Web/preferences/preferences.controller.js');
 const authMiddleware = require('../../middleware/authMiddleware.js');
 
 // Ruta para OBTENER las opciones de la encuesta

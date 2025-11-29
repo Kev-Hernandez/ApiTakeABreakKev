@@ -2,7 +2,7 @@
 
 // ✅ Importamos TODAS las funciones necesarias desde el servicio de Last.fm
 const { getTopGenres, getTopArtists, searchArtists } = require('../../../services/lastfm.service.js');
-const Usuarios = require('../../../Data/model/Usuarios');
+const Usuarios = require('../../../Data/model/Usuarios.js');
 
 // Definimos los sentimientos aquí o los traemos de otro lado
 const sentimientos = ['Feliz', 'Triste', 'Energético', 'Relajado', 'Creativo', 'Nostálgico'];

@@ -11,8 +11,8 @@ dotenv.config();
 // --- Dependencias del proyecto ---
 const connectDB = require('./Data/Conexion/DB');
 const Sync = require('./Data/sync');
-const mainApiRouter = require('./Routes/Web'); // 1. ÚNICA importación para todas las rutas de la API
-const initializeWebsockets = require('./Controller/Web/Chat/Service/Websockets'); // 2. Importamos nuestra nueva lógica de WebSockets
+const mainApiRouter = require('./routes/web'); // 1. ÚNICA importación para todas las rutas de la API
+const initializeWebsockets = require('./controller/web/chat/service/websockets'); // 2. Importamos nuestra nueva lógica de WebSockets
 
 const app = express();
 
@@ -46,7 +46,7 @@ const startServer = async () => {
     console.log('✅ Servicio de WebSocket inicializado.');
 
     // --- Iniciar el Servidor ---
-    const PORT = process.env.PORT || 3001;
+    const PORT = process.env.PORT || 3002;
     server.listen(PORT, () => {
       console.log(`🚀 Servidor corriendo y escuchando en el puerto ${PORT}`);
     });
