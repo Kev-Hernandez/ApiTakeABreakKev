@@ -4,8 +4,8 @@ const express = require('express');
 const router = express.Router();
 
 // Importamos nuestros controladores limpios y organizados
-const userController = require('../../Controller/Web/user/controller_User.js');
-const avatarsController = require('../../Controller/Web/user/controller_avatars.js');
+const userController = require('../../controller/Web/user/controller_User.js');
+const avatarsController = require('../../controller/Web/user/controller_avatars.js');
 const authMiddleware = require('../../middleware/authMiddleware.js'); // Middleware para proteger las rutas
 
 // --- Rutas para Usuarios ---

@@ -11,7 +11,7 @@ const {
   getFriendRequests,
   acceptFriendRequest,
   rejectFriendRequest
-} = require('../../Controller/Web/friends/friends.controller.js');
+} = require('../../controller/Web/friends/friends.controller.js');
 
 // 2. Protegemos TODAS las rutas de amigos con el middleware
 router.use(authMiddleware);

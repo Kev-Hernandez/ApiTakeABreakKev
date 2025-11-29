@@ -2,7 +2,7 @@
 
 const express = require('express');
 const router = express.Router();
-const aiController = require('../../Controller/Web/ia/ai.controller');
+const aiController = require('../../controller/Web/ia/ai.controller');
 const  validateToken  = require('../../middleware/authMiddleware');
 
 // La ruta final será: POST /api/v1/ai/sentiment
